@@ -39,7 +39,7 @@ router.get('/api/links', async (ctx, next) => {
     throw new Error('Not Found');
   }
 
-  ctx.body = { success: true, data: { id, ...document } };
+  ctx.body = { success: true, data: document };
 });
 
 router.post('/api/links', async (ctx, next) => {
