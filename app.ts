@@ -1,8 +1,9 @@
-const Config = require('config');
+import 'dotenv/config'
 import * as Koa from 'koa';
 import * as bodyParser from 'koa-bodyparser';
 import * as Router from '@koa/router';
 import clientPromise, { ObjectId } from './libs/db';
+import logger from './utils/logger';
 
 const app = new Koa();
 const router = new Router();
@@ -13,7 +14,14 @@ app.use(async (ctx, next) => {
   try {
     await next();
   } catch (err) {
-    console.error(err);
+    ctx.status = err.statusCode || err.status || 500;
+    ctx.body = {
+      success: false,
+      message: err.message,
+      code: err.code,
+    };
+
+    logger.error(err);
   }
 });
 
@@ -27,16 +35,15 @@ router.get('/api/links', async (ctx, next) => {
     .findOne({ _id: new ObjectId(id as string) }, { projection: { _id: 0 } });
 
   if (!document) {
-    ctx.status = 404;
-    ctx.body = { success: false };
-    return; 
+    // TODO: 에러 처리
+    throw new Error('Not Found');
   }
 
   ctx.body = { success: true, data: document };
 });
 
 router.post('/api/links', async (ctx, next) => {
-  const { url, contents, correct } = ctx.request.body;;
+  const { url, contents, correct } = ctx.request.body;
 
   const client = await clientPromise;
   const { insertedId } = await client.db().collection('links').insertOne({
@@ -47,15 +54,12 @@ router.post('/api/links', async (ctx, next) => {
   });
 
   if (!insertedId) {
-    ctx.status = 404;
-    ctx.body = { success: false };
-    return;
+    // TODO: 에러 처리
+    throw new Error('Insert Fail');
   }
 
   ctx.body = { success: true, data: insertedId  };
-  return;
 });
-
 
 app.use(router.routes());
 app.use(router.allowedMethods());
